@@ -62,5 +62,14 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>The app uses your location be give you parking spots suggestions</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>The app uses your location be give you parking spots suggestions</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 </dict>
 </plist>
