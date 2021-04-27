@@ -89,6 +89,11 @@ extension ViewController: GateDelegate {
             // TODO also minimize target parking spot (it should be inflated)
             self.map.removeOverlay(route.polyline!)
             
+            // TODO remove destination marker and add spot annotation back but as taken
+            self.map.removeAnnotation(self.currentRoute!.destinationAnnotation!)
+            self.addSpotAnnotation(spot: self.currentRoute!.parkingSpot)
+            self.currentRoute = nil
+            
             self.showRatingSheet(route: route)
         }
         
@@ -96,23 +101,15 @@ extension ViewController: GateDelegate {
         
         // save route and show target
         currentRoute = route
-//        addDestinationAnnotation(to: route)
+        addDestinationAnnotation(to: route)
     }
     
     func addDestinationAnnotation(to route: Route) {
-        for spot in currentParkingLot!.parkingSpots! {
-            if spot.id == currentRoute?.parkingSpotID {
-                // found the spot. Save it
-                route.parkingSpot = spot
-                break
-            }
-        }
-        
-        let pointCord = CLLocationCoordinate2D(latitude: route.parkingSpot!.lat, longitude: route.parkingSpot!.lon)
+        let pointCord = CLLocationCoordinate2D(latitude: route.parkingSpot.lat, longitude: route.parkingSpot.lon)
         let marker = DestinationAnnotation()
         marker.coordinate = pointCord
         marker.title = "Your spot"
-//        self.removeAnnotation(forSpot: route.parkingSpot!)
+        self.removeAnnotation(forSpot: route.parkingSpot) // will be added back when the user reaches their destination
         map.addAnnotation(marker)
         route.destinationAnnotation = marker
 

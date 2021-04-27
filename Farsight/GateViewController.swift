@@ -77,6 +77,7 @@ class GateViewController: UIViewController {
                 route = try JSONDecoder().decode(Route.self, from: jsonData)
                 route.decodePath(jsonArray: payload["route"].arrayValue)
                 route.gate = self.gate
+                route.getParkingSpot()
             } catch let error {
                 // TODO handle error
                 print(error)

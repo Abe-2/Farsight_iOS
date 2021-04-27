@@ -242,9 +242,6 @@ extension UIViewController {
                 let json = JSON(value)
                 completionHandler(json, nil, nil)
             } else {
-                print(result.response)
-                print(result.response?.statusCode)
-                
                 print(String(decoding: result.value!!, as: UTF8.self))
 //                completionHandler(nil, result, "network_err_default_text".localized)
                 completionHandler(nil, result, "you are not connected to the internet")

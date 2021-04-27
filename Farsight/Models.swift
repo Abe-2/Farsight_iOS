@@ -86,6 +86,7 @@ class Gate: Codable, Equatable {
     var lon: Double
     var lat: Double
     
+    var parkingLot: ParkingLot!
     var places: [Place]
     
     static var typesOrder = ["restaurant", "shopping", "utilities"] // used to make sure sections are displayed in the order in this array
@@ -112,13 +113,14 @@ class Gate: Codable, Equatable {
         return lhs.id == rhs.id
     }
     
-    static func decode(array: [JSON]) -> [Gate]? {
+    static func decode(array: [JSON], lot: ParkingLot) -> [Gate]? {
         var ret = [Gate]()
         for object in array {
             do {
                 let jsonData = try object.rawData()
                 let gate = try JSONDecoder().decode(Gate.self, from: jsonData)
                 ret.append(gate)
+                gate.parkingLot = lot
                 Gate.categorizePlaces(gate: gate)
             } catch let error {
                 print(error)
@@ -194,8 +196,19 @@ class ParkingSpot: Codable {
     }
     
     // used in case `annotation` is not set
-    func getAnnotation() -> ParkingSpotAnnotation {
+    func getAnnotation(map: MKMapView) -> ParkingSpotAnnotation? {
+        for annotation in map.annotations {
+            guard let spotAnnotation = annotation as? ParkingSpotAnnotation else {
+                continue
+            }
+            
+            if spotAnnotation.parkingSpot.id == self.id {
+                self.annotation = spotAnnotation
+                return spotAnnotation
+            }
+        }
         
+        return nil // should
     }
 }
 
@@ -211,7 +224,7 @@ class Route: Codable {
     
     var gate: Gate!
     
-    var parkingSpot: ParkingSpot?
+    var parkingSpot: ParkingSpot!
     var destinationAnnotation: DestinationAnnotation?
     
     enum CodingKeys:String,CodingKey {
@@ -241,5 +254,17 @@ class Route: Codable {
         self.polyline = polyline // needed so we can remove the path later
 
         return polyline
+    }
+    
+    func getParkingSpot() -> ParkingSpot? {
+        for spot in gate.parkingLot.parkingSpots! {
+            if spot.id == self.parkingSpotID {
+                // found the spot. Save it
+                self.parkingSpot = spot
+                return spot
+            }
+        }
+        
+        return nil // TODO should never happen, throw error
     }
 }

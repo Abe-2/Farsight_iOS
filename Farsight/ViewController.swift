@@ -13,7 +13,6 @@ import Starscream
 
 
 // - cycle 3:
-// TODO target parking spot
 // TODO sending user location
 // TODO re-route if no is selected
 // TODO multiple users simulations
@@ -53,7 +52,10 @@ class ViewController: UIViewController {
     
     var parkingLots = [ParkingLot]()
     var currentParkingLot: ParkingLot? = nil
-    var currentRoute: Route? // only if we got suggestion
+    
+    // only if we got suggestion
+    // marked nil when user reaches destination
+    var currentRoute: Route?
     
     var currentGateAnnotation: GateAnnotation? = nil
     var activeSheet: SheetViewController? = nil
@@ -71,7 +73,9 @@ class ViewController: UIViewController {
             guard oldValue != isAtBigZoom else {
                 return
             }
-            
+
+            print("changing zoom")
+
             // refresh parking spots annotations
             let annotations = self.map.annotations
             let parkingAnnotations = annotations.filter({ (annotation) -> Bool in
@@ -146,6 +150,8 @@ class ViewController: UIViewController {
         }
         
         getParkingLots()
+        
+//        register()
     }
     
     func findView(current: UIView, path: [String], index: Int) -> UIView? {
@@ -213,7 +219,7 @@ class ViewController: UIViewController {
                 // TODO handle error
             }
 
-            parkingLot.gates = Gate.decode(array: payload!["gates"].arrayValue)
+            parkingLot.gates = Gate.decode(array: payload!["gates"].arrayValue, lot: parkingLot)
             parkingLot.parkingSpots = ParkingSpot.decode(array: payload!["parking_spots"].arrayValue)
             self.select(parkingLot: parkingLot)
             completion?()
@@ -259,27 +265,35 @@ class ViewController: UIViewController {
         showParkingLotControls(forPark: parkingLot)
         
         for spot in parkingLot.parkingSpots! {
-            let pointCord = CLLocationCoordinate2D(latitude: spot.lat, longitude: spot.lon)
-            let marker = ParkingSpotAnnotation()
-            
-            // keep a reference on both directions
-            marker.parkingSpot = spot
-            spot.annotation = marker
-            
-            marker.coordinate = pointCord
-            map.addAnnotation(marker)
+            addSpotAnnotation(spot: spot)
         }
         
         for gate in parkingLot.gates! {
-            let pointCord = CLLocationCoordinate2D(latitude: gate.lat, longitude: gate.lon)
-            let marker = GateAnnotation()
-            marker.gate = gate
-            marker.coordinate = pointCord
-            marker.title = gate.name
-            map.addAnnotation(marker)
+            addGateAnnotation(gate: gate)
         }
         
         addMyCarAnnotation()
+    }
+    
+    func addSpotAnnotation(spot: ParkingSpot) {
+        let pointCord = CLLocationCoordinate2D(latitude: spot.lat, longitude: spot.lon)
+        let marker = ParkingSpotAnnotation()
+        
+        // keep a reference on both directions
+        marker.parkingSpot = spot
+        spot.annotation = marker
+        
+        marker.coordinate = pointCord
+        map.addAnnotation(marker)
+    }
+    
+    func addGateAnnotation(gate: Gate) {
+        let pointCord = CLLocationCoordinate2D(latitude: gate.lat, longitude: gate.lon)
+        let marker = GateAnnotation()
+        marker.gate = gate
+        marker.coordinate = pointCord
+        marker.title = gate.name
+        map.addAnnotation(marker)
     }
     
     func addMyCarAnnotation() {
@@ -449,7 +463,7 @@ extension ViewController: WebSocketDelegate {
                 isConnected = false
                 print("websocket is disconnected: \(reason) with code: \(code)")
             case .text(let string):
-                print("Received text: \(string)")
+//                print("Received text: \(string)")
 //                receive(message: self.convertToDictionary(text: string)!)
                 receive(message: JSON(string.data(using: .utf8)))
             case .binary(let data):
@@ -475,7 +489,9 @@ extension ViewController: WebSocketDelegate {
         
         switch message["event"].stringValue {
         case "parking_spots":
-            print(message["data"])
+            print("got parking spots")
+            // TODO get spots from here
+//            print(message["data"])
             
         case "parking_spot_taken":
             print("spot taken \(message["data"])")

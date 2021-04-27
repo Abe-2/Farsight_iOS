@@ -11,37 +11,37 @@ import MapKit
 
 extension ViewController: MKMapViewDelegate {
     
-    // TODO use dequeue to reuse markers
+    func register() {
+        map.register(MKMarkerAnnotationView.self, forAnnotationViewWithReuseIdentifier: ParkingSpotAnnotationView.clusteringReuseIdentifier)
+        map.register(ParkingSpotAnnotationView.self, forAnnotationViewWithReuseIdentifier: ParkingSpotAnnotationView.reuseIdentifier)
+        map.register(ParkingLotAnnotationView.self, forAnnotationViewWithReuseIdentifier: ParkingLotAnnotationView.reuseIdentifier)
+        map.register(GateAnnotationView.self, forAnnotationViewWithReuseIdentifier: GateAnnotationView.reuseIdentifier)
+        map.register(MyCarAnnotationView.self, forAnnotationViewWithReuseIdentifier: MyCarAnnotationView.reuseIdentifier)
+    }
+    
+    // TODO the code here needs reorganization and cleaning
     func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+        // TODO make rest of cases follow this style
+        if annotation is MKClusterAnnotation {
+            return setupClusterAnnotation(for: annotation, on: map)
+        }
         
-        switch annotation {
-        case is MKClusterAnnotation:
-            // only parking spots have a cluster
-            // TODO move into annotations file
-            // TODO we need more zoom. Currently it gets stuck on 2 per cluster
-            let clusterMarker = MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: ParkingSpotAnnotationView.clusteringIdentifier)
-            clusterMarker.collisionMode = .rectangle
-            
-            // adjust size to determine how much annotations are clustered. Bigger size mean less clusters.
-            clusterMarker.bounds = CGRect(origin: clusterMarker.bounds.origin, size: CGSize(width: 50, height: 50))
-            
-            clusterMarker.displayPriority = .defaultLow
-            clusterMarker.zPriority = .min
-            clusterMarker.centerOffset = CGPoint(x: 0, y: -10) // Offset center point to animate better with marker annotations
-            
-            (annotation as! MKClusterAnnotation).title = "empty"
-            clusterMarker.subtitleVisibility = MKFeatureVisibility.hidden
-            
-            let clusterAnnotation = annotation as! MKClusterAnnotation
-            if clusterAnnotation.memberAnnotations.count < 5 {
-                clusterMarker.markerTintColor = #colorLiteral(red: 0.7490196078, green: 0.1254901961, blue: 0.1843137255, alpha: 1)
-            } else if clusterAnnotation.memberAnnotations.count < 30 {
-                clusterMarker.markerTintColor = #colorLiteral(red: 0.9333333333, green: 0.7333333333, blue: 0.1058823529, alpha: 1)
-            } else {
-                clusterMarker.markerTintColor = #colorLiteral(red: 0, green: 0.8694628477, blue: 0.3590038419, alpha: 1) // same as ParkingSpotAnnotationView color
+        guard let identifier = identifierForAnnotation(annotation: annotation) else {
+            return nil
+        }
+        
+        let annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier)
+        
+        if annotationView != nil {
+            annotationView?.annotation = annotation
+            if annotation is ParkingSpotAnnotation {
+                (annotationView as! ParkingSpotAnnotationView).setClusteringIf(isAtBigZoom: isAtBigZoom)
             }
             
-            return clusterMarker
+            return annotationView
+        }
+        
+        switch annotation {
         case is ParkingLotAnnotation:
             return ParkingLotAnnotationView(annotation: annotation, reuseIdentifier: ParkingLotAnnotationView.reuseIdentifier)
         case is ParkingSpotAnnotation:
@@ -61,8 +61,60 @@ extension ViewController: MKMapViewDelegate {
         }
     }
     
+    func identifierForAnnotation(annotation: MKAnnotation) -> String? {
+        switch annotation {
+        case is ParkingLotAnnotation:
+            return ParkingLotAnnotationView.reuseIdentifier
+        case is ParkingSpotAnnotation:
+            return ParkingSpotAnnotationView.reuseIdentifier
+        case is GateAnnotation:
+            return GateAnnotationView.reuseIdentifier
+        case is MyCarAnnotation:
+            return MyCarAnnotationView.reuseIdentifier
+        case is DestinationAnnotation:
+            return DestinationAnnotationView.reuseIdentifier
+        case is MyCarAnnotation2:
+            return MyCarAnnotationView2.reuseIdentifier
+        default:
+            return nil
+        }
+    }
+    
+    func setupClusterAnnotation(for annotation: MKAnnotation, on map: MKMapView) -> MKAnnotationView {
+        // only parking spots have a cluster
+        // TODO move into annotations file
+        var annotationView: MKMarkerAnnotationView! = map.dequeueReusableAnnotationView(withIdentifier: ParkingSpotAnnotationView.clusteringReuseIdentifier) as? MKMarkerAnnotationView
+        
+        if annotationView == nil {
+            annotationView = MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: ParkingSpotAnnotationView.clusteringReuseIdentifier)
+        }
+        
+        annotationView.collisionMode = .rectangle
+        
+        // adjust size to determine how much annotations are clustered. Bigger size mean less clusters.
+        annotationView.bounds = CGRect(origin: annotationView.bounds.origin, size: CGSize(width: 50, height: 50))
+        
+        annotationView.displayPriority = .defaultLow
+//            clusterMarker.zPriority = .min
+        annotationView.centerOffset = CGPoint(x: 0, y: -10) // Offset center point to animate better with marker annotations
+        
+        (annotation as! MKClusterAnnotation).title = "empty"
+        annotationView.subtitleVisibility = MKFeatureVisibility.hidden
+        
+        let clusterAnnotation = annotation as! MKClusterAnnotation
+        if clusterAnnotation.memberAnnotations.count < 5 {
+            annotationView.markerTintColor = #colorLiteral(red: 0.7490196078, green: 0.1254901961, blue: 0.1843137255, alpha: 1)
+        } else if clusterAnnotation.memberAnnotations.count < 30 {
+            annotationView.markerTintColor = #colorLiteral(red: 0.9333333333, green: 0.7333333333, blue: 0.1058823529, alpha: 1)
+        } else {
+            annotationView.markerTintColor = #colorLiteral(red: 0, green: 0.8694628477, blue: 0.3590038419, alpha: 1) // same as ParkingSpotAnnotationView color
+        }
+        
+        return annotationView
+    }
+    
     func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
-        isAtBigZoom = mapView.region.span.latitudeDelta < 0.003
+        isAtBigZoom = mapView.region.span.latitudeDelta < 0.002
     }
     
     func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
@@ -109,15 +161,10 @@ extension ViewController: MKMapViewDelegate {
     }
     
     func removeAnnotation(forSpot spot: ParkingSpot) {
-        for annotation in map.annotations {
-            guard let spotAnnotation = annotation as? ParkingSpotAnnotation else {
-                continue
-            }
-            
-            if spotAnnotation.parkingSpot.id == spot.id {
-                self.map.removeAnnotation(spotAnnotation)
-                break
-            }
+        let spotAnnotation = spot.annotation != nil ? spot.annotation : spot.getAnnotation(map: map)
+        if spotAnnotation != nil {
+            self.map.removeAnnotation(spotAnnotation!)
+            spot.annotation = nil
         }
     }
 }

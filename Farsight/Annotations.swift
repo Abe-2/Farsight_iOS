@@ -19,6 +19,7 @@ class ParkingLotAnnotationView: MKMarkerAnnotationView {
     override init(annotation: MKAnnotation?, reuseIdentifier: String?) {
         super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
         
+        displayPriority = .defaultHigh
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -27,7 +28,6 @@ class ParkingLotAnnotationView: MKMarkerAnnotationView {
     
     override func prepareForDisplay() {
         super.prepareForDisplay()
-        displayPriority = .required
         markerTintColor = #colorLiteral(red: 0.2392156863, green: 0.662745098, blue: 0.9725490196, alpha: 1)
         glyphImage = UIImage(systemName: "p.circle")
     }
@@ -44,13 +44,12 @@ class ParkingSpotAnnotation: MKPointAnnotation {
 class ParkingSpotAnnotationView: MKAnnotationView {
     static let reuseIdentifier = "ParkingSpotAnnotation"
     static let clusteringIdentifier = "ParkingSpotCluster"
+    static let clusteringReuseIdentifier = "ParkingSpotClusterReuse"
     
     override init(annotation: MKAnnotation?, reuseIdentifier: String?) {
         super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
         
-//        if (annotation as! ParkingSpotAnnotation).parkingSpot.occupied == false {
-//            clusteringIdentifier = ParkingSpotAnnotationView.clusteringIdentifier
-//        }
+        displayPriority = .defaultLow
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -60,13 +59,9 @@ class ParkingSpotAnnotationView: MKAnnotationView {
     override func prepareForDisplay() {
         super.prepareForDisplay()
         
-//        alpha = 0 // initially hidden and shown when we zoom in
-        
         if (annotation as! ParkingSpotAnnotation).parkingSpot.occupied {
-            displayPriority = .defaultLow
             image = (annotation as! ParkingSpotAnnotation).takenSpotImage
         }else{
-            displayPriority = .defaultLow
             image = (annotation as! ParkingSpotAnnotation).emptySpotImage
         }
     }
@@ -100,6 +95,7 @@ class GateAnnotationView: MKMarkerAnnotationView {
         super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
         
 //        clusteringIdentifier = "ParkingSpotCluster"
+        displayPriority = .defaultLow
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -108,7 +104,7 @@ class GateAnnotationView: MKMarkerAnnotationView {
     
     override func prepareForDisplay() {
         super.prepareForDisplay()
-        displayPriority = .required
+//        displayPriority = .defaultLow // setting the priority here doesn't work
         markerTintColor = GateAnnotationView.mainColor
         glyphImage = UIImage(systemName: "figure.walk")
     }
@@ -140,13 +136,19 @@ class DestinationAnnotation: MKPointAnnotation {
 class DestinationAnnotationView: MKMarkerAnnotationView {
     static let reuseIdentifier = "DestinationAnnotation"
     
+    override init(annotation: MKAnnotation?, reuseIdentifier: String?) {
+        super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
+        
+        displayPriority = .required
+    }
+    
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
     override func prepareForDisplay() {
         super.prepareForDisplay()
-        displayPriority = .required
+//        displayPriority = .required // setting the priority here doesn't work
         markerTintColor = #colorLiteral(red: 1, green: 0.2595997751, blue: 0.3398093581, alpha: 1)
         glyphImage = UIImage(systemName: "flag.fill")
     }
@@ -164,7 +166,7 @@ class MyCarAnnotationView2: MKMarkerAnnotationView {
     
     override func prepareForDisplay() {
         super.prepareForDisplay()
-        displayPriority = .required
+        displayPriority = .defaultLow
         markerTintColor = #colorLiteral(red: 0.8549019694, green: 0.250980407, blue: 0.4784313738, alpha: 1)
         glyphImage = UIImage(systemName: "car.fill")
     }
