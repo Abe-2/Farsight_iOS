@@ -8,24 +8,21 @@
 import UIKit
 import MapKit
 import FittedSheets
+import SwiftyJSON
+import Starscream
 
-// - cycle 2:
-// --TODO gray out gates that don't match the search
-// --TODO different colors for smaller clusters
-// --TODO higher cluster radius for spots annotations
-// --TODO loading indicator when loading suggestion + disabling card interaction
-// --TODO draw route
-// --TODO route sheet
-// TODO target parking spot
-// --TODO my car selection
-// --TODO rating
-// --TODO mark spot as my car if I parked (chose yes)
-// TODO disable selecting gate when we have a route
 
 // - cycle 3:
+// TODO target parking spot
 // TODO sending user location
-// TODO fixing path extra parts issue
 // TODO re-route if no is selected
+// TODO multiple users simulations
+// TODO leaving parking spot endpoint
+// TODO selecting many parking spots
+// TODO marking a single parking spot as taken
+// TODO re-route if spot is taken
+// TODO show no spot found if get suggestion returns 404
+// TODO clean database from fake users and free up spots
 
 // - extra
 // TODO predicating when user is going to their car feature
@@ -33,10 +30,8 @@ import FittedSheets
 // TODO auto-complete for search
 
 // - improvements
-// TODO smaller icons for spots annotations
 // TODO loading indicator when loading parking lots
 // TODO remove the selection box on user location button
-// TODO improve the hiding and showing of occupied spots
 // TODO create a separate array for gate annotations to speed up search instead of passing through all annotations.
 //  same for occupied spots.
 
@@ -58,11 +53,16 @@ class ViewController: UIViewController {
     
     var parkingLots = [ParkingLot]()
     var currentParkingLot: ParkingLot? = nil
+    var currentRoute: Route? // only if we got suggestion
     
     var currentGateAnnotation: GateAnnotation? = nil
     var activeSheet: SheetViewController? = nil
     
     let locationManager = CLLocationManager()
+    
+    // for socket
+    var socket: WebSocket!
+    var isConnected = false
     
     // when at big zoom, display occupied spots pins
     var isAtBigZoom = false {
@@ -71,15 +71,47 @@ class ViewController: UIViewController {
             guard oldValue != isAtBigZoom else {
                 return
             }
-
-            // in my case I wanted to show/hide only a certain type of annotations
-            for case let annot as ParkingSpotAnnotation in map.annotations {
-                if annot.parkingSpot.occupied {
-                    map.view(for: annot)?.alpha = isAtBigZoom ? 1 : 0
-                }
-            }
+            
+            // refresh parking spots annotations
+            let annotations = self.map.annotations
+            let parkingAnnotations = annotations.filter({ (annotation) -> Bool in
+                return annotation is ParkingSpotAnnotation
+            })
+            self.map.removeAnnotations(parkingAnnotations)
+            self.map.addAnnotations(parkingAnnotations)
         }
     }
+    
+    // for testing
+    var myCarSimulation: MyCarAnnotation2!
+    var simulationTimer: Timer!
+    var index = 0
+    let locations = [
+        CLLocationCoordinate2D(latitude: 29.272062, longitude: 48.052245),
+        CLLocationCoordinate2D(latitude: 29.272146, longitude: 48.052158),
+        CLLocationCoordinate2D(latitude: 29.272243, longitude: 48.052097),
+        CLLocationCoordinate2D(latitude: 29.272343, longitude: 48.052055),
+        CLLocationCoordinate2D(latitude: 29.272453, longitude: 48.052039),
+        CLLocationCoordinate2D(latitude: 29.272513, longitude: 48.052105),
+        CLLocationCoordinate2D(latitude: 29.272547, longitude: 48.052207),
+        CLLocationCoordinate2D(latitude: 29.272524, longitude: 48.052314),
+        CLLocationCoordinate2D(latitude: 29.272429, longitude: 48.052356),
+        CLLocationCoordinate2D(latitude: 29.272352, longitude: 48.052386),
+        CLLocationCoordinate2D(latitude: 29.272271, longitude: 48.052414),
+        CLLocationCoordinate2D(latitude: 29.272219, longitude: 48.052479),
+        CLLocationCoordinate2D(latitude: 29.272249, longitude: 48.052611),
+        CLLocationCoordinate2D(latitude: 29.272296, longitude: 48.052713),
+        CLLocationCoordinate2D(latitude: 29.272332, longitude: 48.052838),
+        CLLocationCoordinate2D(latitude: 29.272390, longitude: 48.052975),
+        CLLocationCoordinate2D(latitude: 29.272437, longitude: 48.053089),
+        CLLocationCoordinate2D(latitude: 29.272500, longitude: 48.053107),
+        CLLocationCoordinate2D(latitude: 29.272598, longitude: 48.053078),
+        CLLocationCoordinate2D(latitude: 29.272700, longitude: 48.053035),
+        CLLocationCoordinate2D(latitude: 29.272816, longitude: 48.052994),
+        CLLocationCoordinate2D(latitude: 29.272785, longitude: 48.053003),
+        CLLocationCoordinate2D(latitude: 29.272942, longitude: 48.052946),
+        CLLocationCoordinate2D(latitude: 29.272942, longitude: 48.052946),
+    ]
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -144,13 +176,15 @@ class ViewController: UIViewController {
     }
     
     func getParkingLots() {
-        requestImmediate("/lot/", params: ["user_id": "51"]) { (payload, raw, error) in
+        requestImmediate("/lot/", params: ["user_id": Global.phoneID]) { (payload, raw, error) in
             if error != nil {
                 // TODO handle error
             }
             
             self.parkingLots = ParkingLot.decode(array: payload!.arrayValue)
             self.placeParkingLots()
+            
+            self.socket = self.connect()
         }
     }
     
@@ -178,12 +212,42 @@ class ViewController: UIViewController {
             if error != nil {
                 // TODO handle error
             }
-            
+
             parkingLot.gates = Gate.decode(array: payload!["gates"].arrayValue)
             parkingLot.parkingSpots = ParkingSpot.decode(array: payload!["parking_spots"].arrayValue)
             self.select(parkingLot: parkingLot)
             completion?()
+            
+            // subscribe to the parking lot
+            let data: [String : Any] = [
+                "action": "subscribe",
+                "parking_lot_id": parkingLot.id
+            ]
+            self.send(data, onSuccess: nil)
         }
+//        if completion != nil {
+//            // TODO this is kept for my car because I couldn't find a clean way to do it with sockets
+//            requestImmediate("/lot/\(parkingLot.id)") { (payload, raw, error) in
+//                if error != nil {
+//                    // TODO handle error
+//                }
+//
+//                parkingLot.gates = Gate.decode(array: payload!["gates"].arrayValue)
+//                parkingLot.parkingSpots = ParkingSpot.decode(array: payload!["parking_spots"].arrayValue)
+//                self.select(parkingLot: parkingLot)
+//                completion?()
+//            }
+//        }else{
+//            if isConnected {
+//                // subscribe to the parking lot
+//                let data: [String : Any] = [
+//                    "action": "subscribe",
+//                    "parking_lot_id": parkingLot.id
+//                ]
+//                self.send(data, onSuccess: nil)
+//            }
+//        }
+        
     }
     
     // This should not be called directly. It should only be called from get(parkingLot)
@@ -197,7 +261,11 @@ class ViewController: UIViewController {
         for spot in parkingLot.parkingSpots! {
             let pointCord = CLLocationCoordinate2D(latitude: spot.lat, longitude: spot.lon)
             let marker = ParkingSpotAnnotation()
+            
+            // keep a reference on both directions
             marker.parkingSpot = spot
+            spot.annotation = marker
+            
             marker.coordinate = pointCord
             map.addAnnotation(marker)
         }
@@ -238,16 +306,6 @@ class ViewController: UIViewController {
         }
     }
     
-    func addDestinationAnnotation() {
-//        let pointCord = CLLocationCoordinate2D(latitude: spot.lat, longitude: spot.lon)
-//        let marker = MyCarAnnotation()
-//        marker.coordinate = pointCord
-//        marker.title = "My car"
-//        map.addAnnotation(marker)
-//
-//        currentParkingLot!.myCarAnnotation = marker
-    }
-    
     func showParkingLotControls(forPark parkingLot: ParkingLot) {
         UIView.animate(withDuration: 0.3) {
             self.srcBarTop.constant = 12
@@ -278,78 +336,59 @@ class ViewController: UIViewController {
             }
         }
     }
-}
-
-extension ViewController: MKMapViewDelegate {
     
-    // TODO use dequeue to reuse markers
-    func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+    @IBAction func startSimulation() {
+        index = 0
+        let pointCord = CLLocationCoordinate2D(latitude: locations[index].latitude, longitude: locations[index].longitude)
+        index += 1
         
-        switch annotation {
-        case is MKClusterAnnotation:
-            // only parking spots have a cluster
-            // TODO move into annotations file
-            // TODO we need more zoom. Currently it gets stuck on 2 per cluster
-            let clusterMarker = MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: ParkingSpotAnnotationView.clusteringIdentifier)
-            clusterMarker.collisionMode = .rectangle
-            
-            // adjust size to determine how much annotations are clustered. Bigger size mean less clusters.
-            clusterMarker.bounds = CGRect(origin: clusterMarker.bounds.origin, size: CGSize(width: 50, height: 50))
-            
-            clusterMarker.displayPriority = .defaultLow
-            clusterMarker.zPriority = .min
-            clusterMarker.centerOffset = CGPoint(x: 0, y: -10) // Offset center point to animate better with marker annotations
-            
-            (annotation as! MKClusterAnnotation).title = "empty"
-            clusterMarker.subtitleVisibility = MKFeatureVisibility.hidden
-            
-            let clusterAnnotation = annotation as! MKClusterAnnotation
-            if clusterAnnotation.memberAnnotations.count < 5 {
-                clusterMarker.markerTintColor = #colorLiteral(red: 0.7490196078, green: 0.1254901961, blue: 0.1843137255, alpha: 1)
-            } else if clusterAnnotation.memberAnnotations.count < 30 {
-                clusterMarker.markerTintColor = #colorLiteral(red: 0.9333333333, green: 0.7333333333, blue: 0.1058823529, alpha: 1)
-            } else {
-                clusterMarker.markerTintColor = #colorLiteral(red: 0, green: 0.8694628477, blue: 0.3590038419, alpha: 1) // same as ParkingSpotAnnotationView color
+        myCarSimulation = MyCarAnnotation2()
+        myCarSimulation.coordinate = pointCord
+        map.addAnnotation(myCarSimulation)
+        
+        simulationTimer = Timer.scheduledTimer(timeInterval: 0.5, target: self, selector: #selector(updateSimulation), userInfo: nil, repeats: true)
+    }
+    
+    @objc func updateSimulation() {
+        let pointCord = CLLocationCoordinate2D(latitude: locations[index].latitude, longitude: locations[index].longitude)
+        myCarSimulation.coordinate = pointCord
+        
+        if index == locations.count - 1 {
+            simulationTimer.invalidate()
+        }
+        
+        index += 1
+        
+        if currentRoute != nil {
+            print(currentRoute?.parkingSpotID)
+            // we have a route so we need to check our distance to the target
+            // get spot coords
+            for spot in currentParkingLot!.parkingSpots! {
+                if spot.id == currentRoute?.parkingSpotID {
+                    // found the spot. Check distance to it
+                    let targetLocation = CLLocation(latitude: spot.lat, longitude: spot.lon)
+                    let userLocation = CLLocation(latitude: pointCord.latitude, longitude: pointCord.longitude)
+                    
+                    let distance = targetLocation.distance(from: userLocation) // in meters
+                    
+                    print(distance)
+                    
+                    if distance < 10 {
+                        self.destinationReached()
+                        simulationTimer.invalidate()
+                        return
+                    }
+                    
+                    break
+                }
             }
             
-            return clusterMarker
-        case is ParkingLotAnnotation:
-            return ParkingLotAnnotationView(annotation: annotation, reuseIdentifier: ParkingLotAnnotationView.reuseIdentifier)
-        case is ParkingSpotAnnotation:
-            return ParkingSpotAnnotationView(annotation: annotation, reuseIdentifier: ParkingSpotAnnotationView.reuseIdentifier)
-        case is GateAnnotation:
-            return GateAnnotationView(annotation: annotation, reuseIdentifier: GateAnnotationView.reuseIdentifier)
-        case is MyCarAnnotation:
-            return MyCarAnnotationView(annotation: annotation, reuseIdentifier: MyCarAnnotationView.reuseIdentifier)
-        case is DestinationAnnotation:
-            return DestinationAnnotationView(annotation: annotation, reuseIdentifier: DestinationAnnotationView.reuseIdentifier)
-        default:
-            return nil
-        }
-    }
-    
-    func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
-        isAtBigZoom = mapView.region.span.latitudeDelta < 0.003
-    }
-    
-    func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
-        switch view {
-        
-        // TODO disable parking lot balloon inflation
-        case is ParkingLotAnnotationView:
-            let viewRegion = MKCoordinateRegion(center: view.annotation!.coordinate, latitudinalMeters: 400, longitudinalMeters: 400)
-            map.setRegion(viewRegion, animated: true)
-            get(parkingLot: (view.annotation as! ParkingLotAnnotation).parkingLot, completion: nil)
-        case is GateAnnotationView:
-            let viewRegion = MKCoordinateRegion(center: view.annotation!.coordinate, latitudinalMeters: 400, longitudinalMeters: 400)
-            map.setRegion(viewRegion, animated: true)
-            showGate(view: view)
-        default:
-            return
         }
     }
 }
 
+
+// MARK: - Location manager
 extension ViewController: CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         // TODO use user new location
@@ -366,171 +405,6 @@ extension ViewController: CLLocationManagerDelegate {
             let viewRegion = MKCoordinateRegion(center: userLocation, latitudinalMeters: 800, longitudinalMeters: 800)
             map.setRegion(viewRegion, animated: false)
         }
-    }
-}
-
-extension ViewController: UISearchBarDelegate {
-    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-        if searchText == "" {
-            clearSearch()
-            return
-        }
-        
-        let gates = currentParkingLot?.search(query: searchText) ?? []
-        
-        for annotation in map.annotations {
-            guard let gateAnnotation = annotation as? GateAnnotation else {
-                continue
-            }
-            
-            let view = map.view(for: gateAnnotation) as! MKMarkerAnnotationView
-            let gateInResult = gates.contains { (curr) -> Bool in
-                return curr == gateAnnotation.gate
-            }
-            if gateInResult {
-                view.markerTintColor = GateAnnotationView.matchedColor
-            }else{
-                view.markerTintColor = GateAnnotationView.unmatchedColor
-            }
-        }
-    }
-    
-    func clearSearch() {
-//        self.view.endEditing(true)
-        
-//        currentParkingLot?.resetFilter()
-        
-        for annotation in map.annotations {
-            guard let gateAnnotation = annotation as? GateAnnotation else {
-                continue
-            }
-            
-            let view = map.view(for: gateAnnotation) as! MKMarkerAnnotationView
-            view.markerTintColor = GateAnnotationView.mainColor
-        }
-    }
-}
-
-extension ViewController: GateDelegate {
-    func showGate(view: MKAnnotationView) {
-        let controller = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "GateViewController") as! GateViewController
-        controller.delegate = self
-        
-        DispatchQueue.main.asyncAfter(deadline: DispatchTime(uptimeNanoseconds: 1000)) {
-            controller.gate = (view.annotation as! GateAnnotation).gate
-            self.currentGateAnnotation = view.annotation as? GateAnnotation
-        }
-        
-//        activeSheet = SheetViewController(
-//            controller: controller,
-//            sizes: [.percent(Float(186/self.view.frame.height)), .fullscreen],
-//            options: SheetOptions(useFullScreenMode: false, useInlineMode: true))
-//        activeSheet!.overlayColor = .clear
-//        activeSheet!.cornerRadius = 16
-//
-//        activeSheet!.view.layer.shadowRadius = 4
-//        activeSheet!.view.layer.shadowColor = UIColor.black.cgColor
-//        activeSheet!.view.layer.shadowOpacity = 0.2
-//        activeSheet!.view.layer.shadowOffset = CGSize(width: 0, height: -2)
-        
-        activeSheet = createSheet(controller: controller)
-        
-        activeSheet!.didDismiss = { _ in
-            print("did dismiss")
-            self.map.deselectAnnotation(view.annotation, animated: true)
-            self.currentGateAnnotation = nil
-        }
-        
-        activeSheet!.animateIn(to: self.view, in: self)
-    }
-    
-    // TODO maybe better to subclass SheetViewController and implement this initialization in its init
-    func createSheet(controller: UIViewController) -> SheetViewController {
-        let newSheet = SheetViewController(
-            controller: controller,
-            sizes: [.percent(Float(186/self.view.frame.height)), .fullscreen],
-            options: SheetOptions(useFullScreenMode: false, useInlineMode: true))
-        newSheet.overlayColor = .clear
-        newSheet.cornerRadius = 16
-        
-        newSheet.view.layer.shadowRadius = 4
-        newSheet.view.layer.shadowColor = UIColor.black.cgColor
-        newSheet.view.layer.shadowOpacity = 0.2
-        newSheet.view.layer.shadowOffset = CGSize(width: 0, height: -2)
-        
-        return newSheet
-    }
-    
-    func gate(_ gate: Gate, didReceive route: Route) {
-        map.deselectAnnotation(currentGateAnnotation, animated: true)
-        
-        // drawing route
-        let myPolyline = route.createPolyline()
-//        let myPolyline = MKGeodesicPolyline(coordinates: &pointsToUse, count: route.points.count)
-        map.addOverlay(myPolyline!, level: .aboveRoads)
-        
-        // hide current sheet (gate sheet)
-        activeSheet?.animateOut()
-        
-        // show route sheet
-        let controller = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "RouteViewController") as! RouteViewController
-        
-        DispatchQueue.main.asyncAfter(deadline: DispatchTime(uptimeNanoseconds: 1000)) {
-            controller.route = route
-        }
-        activeSheet = createSheet(controller: controller)
-        activeSheet!.sizes = [.percent(0.15)]
-        activeSheet!.dismissOnOverlayTap = false
-        activeSheet!.dismissOnPull = false
-        activeSheet!.allowGestureThroughOverlay = true
-        
-        activeSheet!.didDismiss = { _ in
-            print("did dismiss route sheet")
-            
-            // TODO also minimize target parking spot (it should be inflated)
-            self.map.removeOverlay(route.polyline!)
-            
-            self.showRatingSheet(route: route)
-        }
-        
-        activeSheet!.animateIn(to: self.view, in: self)
-    }
-    
-    func showRatingSheet(route: Route) {
-        let controller = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "RatingViewController") as! RatingViewController
-        
-        DispatchQueue.main.asyncAfter(deadline: DispatchTime(uptimeNanoseconds: 1000)) {
-            controller.route = route
-        }
-        activeSheet = createSheet(controller: controller)
-        activeSheet!.sizes = [.percent(Float(186/self.view.frame.height))]
-        activeSheet!.dismissOnOverlayTap = false
-        activeSheet!.dismissOnPull = false
-        activeSheet!.allowGestureThroughOverlay = false
-        
-        activeSheet!.didDismiss = { _ in
-            print("did dismiss rating sheet")
-            
-            // user arrived and did rating
-            self.currentParkingLot?.userSpot = route.parkingSpotID // the spot is occupied by the user now
-            self.addMyCarAnnotation() // it uses the `userSpot` property on ParkingLot, so we don't have to pass anything
-        }
-        
-        activeSheet!.animateIn(to: self.view, in: self)
-    }
-    
-    func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
-        if overlay.isKind(of: MKPolyline.self) {
-            // draw the track
-            let polyLine = overlay
-            let polyLineRenderer = MKPolylineRenderer(overlay: polyLine)
-            polyLineRenderer.strokeColor = UIColor.blue
-            polyLineRenderer.lineWidth = 2.0
-            
-            return polyLineRenderer
-        }
-        
-        return MKPolylineRenderer()
     }
 }
 
@@ -555,4 +429,101 @@ extension ViewController {
             }
         }
     }
+}
+
+// MARK: - Sockets
+extension ViewController: WebSocketDelegate {
+    func didReceive(event: WebSocketEvent, client: WebSocket) {
+        switch event {
+            case .connected(let headers):
+                isConnected = true
+                print("websocket is connected: \(headers)")
+                
+                // send auth
+                let data = [
+                    "action": "auth",
+                    "phone_id": Global.phoneID
+                ]
+                self.send(data, onSuccess: nil)
+            case .disconnected(let reason, let code):
+                isConnected = false
+                print("websocket is disconnected: \(reason) with code: \(code)")
+            case .text(let string):
+                print("Received text: \(string)")
+//                receive(message: self.convertToDictionary(text: string)!)
+                receive(message: JSON(string.data(using: .utf8)))
+            case .binary(let data):
+                print("Received data: \(data.count)")
+            case .ping(_):
+                break
+            case .pong(_):
+                break
+            case .viabilityChanged(_):
+                break
+            case .reconnectSuggested(_):
+                break
+            case .cancelled:
+                isConnected = false
+            case .error(let error):
+                isConnected = false
+                print(error.publisher)
+                // TODO handle error
+            }
+    }
+    
+    func receive(message: JSON) {
+        
+        switch message["event"].stringValue {
+        case "parking_spots":
+            print(message["data"])
+            
+        case "parking_spot_taken":
+            print("spot taken \(message["data"])")
+            // Check if the taken parking spot is mine or not.
+            //  If yes, then check phone, if same, ignore, otherwise re-route
+            //  Also, change parking spot status
+            guard let spotID = message["data"]["id"].int else {
+                return
+            }
+            
+            // check if it is our spot, if any
+            if let route = currentRoute {
+                if route.parkingSpotID == spotID && message["data"]["phone_id"].stringValue != Global.phoneID {
+                    // taken spot is our spot and its someone else who took it
+                    // TODO re-route
+                }else{
+                    // ignore since we took our spot
+                }
+            }else{
+                // mark spot as taken
+                self.markSpotTaken(spotID: spotID)
+            }
+            
+        default:
+            break
+        }
+        
+    }
+    
+    func send(_ value: Any, onSuccess: (()-> Void)?) {
+        
+        guard JSONSerialization.isValidJSONObject(value) else {
+            print("[WEBSOCKET] Value is not a valid JSON object.\n \(value)")
+            return
+        }
+        
+        print("sending socket message")
+        
+        do {
+            let data = try JSONSerialization.data(withJSONObject: value, options: [])
+            print(String(decoding: data, as: UTF8.self))
+            socket.write(string: String(decoding: data, as: UTF8.self)) {
+                onSuccess?()
+            }
+        } catch let error {
+            print("[WEBSOCKET] Error serializing JSON:\n\(error)")
+        }
+    }
+    
+    
 }

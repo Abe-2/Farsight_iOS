@@ -29,6 +29,9 @@
 		A8938B3625AE73E2007ABE2E /* Global.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8938B3525AE73E2007ABE2E /* Global.swift */; };
 		A8A9B4A825B08857000DF4F8 /* RoundedCornersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8A9B4A625B08857000DF4F8 /* RoundedCornersView.swift */; };
 		A8A9B4A925B08857000DF4F8 /* ShadowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8A9B4A725B08857000DF4F8 /* ShadowView.swift */; };
+		A8AED1122637A77200D5DDD3 /* ViewController+SearchDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8AED1112637A77200D5DDD3 /* ViewController+SearchDelegate.swift */; };
+		A8B8C44826269F970004DBF0 /* ViewController+GateDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B8C44726269F970004DBF0 /* ViewController+GateDelegate.swift */; };
+		A8B8C45026269FE10004DBF0 /* ViewController+MapDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B8C44F26269FE00004DBF0 /* ViewController+MapDelegate.swift */; };
 		A8DF2CB22614297300DD8D18 /* LoadingButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8DF2CB12614297300DD8D18 /* LoadingButton.swift */; };
 		A8DF2CB726142DB600DD8D18 /* RouteViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8DF2CB626142DB600DD8D18 /* RouteViewController.swift */; };
 		A8DF2CBC2614335000DD8D18 /* RatingViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8DF2CBB2614335000DD8D18 /* RatingViewController.swift */; };
@@ -85,6 +88,9 @@
 		A8938B3525AE73E2007ABE2E /* Global.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Global.swift; sourceTree = "<group>"; };
 		A8A9B4A625B08857000DF4F8 /* RoundedCornersView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RoundedCornersView.swift; sourceTree = "<group>"; };
 		A8A9B4A725B08857000DF4F8 /* ShadowView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ShadowView.swift; sourceTree = "<group>"; };
+		A8AED1112637A77200D5DDD3 /* ViewController+SearchDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ViewController+SearchDelegate.swift"; sourceTree = "<group>"; };
+		A8B8C44726269F970004DBF0 /* ViewController+GateDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ViewController+GateDelegate.swift"; sourceTree = "<group>"; };
+		A8B8C44F26269FE00004DBF0 /* ViewController+MapDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ViewController+MapDelegate.swift"; sourceTree = "<group>"; };
 		A8DF2CB12614297300DD8D18 /* LoadingButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingButton.swift; sourceTree = "<group>"; };
 		A8DF2CB626142DB600DD8D18 /* RouteViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteViewController.swift; sourceTree = "<group>"; };
 		A8DF2CBB2614335000DD8D18 /* RatingViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RatingViewController.swift; sourceTree = "<group>"; };
@@ -154,6 +160,9 @@
 				A8938AC925AE0CE7007ABE2E /* AppDelegate.swift */,
 				A8938ACB25AE0CE7007ABE2E /* SceneDelegate.swift */,
 				A8938ACD25AE0CE7007ABE2E /* ViewController.swift */,
+				A8AED1112637A77200D5DDD3 /* ViewController+SearchDelegate.swift */,
+				A8B8C44726269F970004DBF0 /* ViewController+GateDelegate.swift */,
+				A8B8C44F26269FE00004DBF0 /* ViewController+MapDelegate.swift */,
 				A853146F2600E53B009D5EFA /* GateViewController.swift */,
 				A8938AFF25AE2001007ABE2E /* Models.swift */,
 				A8938B1C25AE6319007ABE2E /* Annotations.swift */,
@@ -474,12 +483,15 @@
 				A8938B2C25AE7336007ABE2E /* Hook.swift in Sources */,
 				A8A9B4A925B08857000DF4F8 /* ShadowView.swift in Sources */,
 				A8DF2CB726142DB600DD8D18 /* RouteViewController.swift in Sources */,
+				A8B8C44826269F970004DBF0 /* ViewController+GateDelegate.swift in Sources */,
 				A8DF2CBC2614335000DD8D18 /* RatingViewController.swift in Sources */,
 				A81ACE9925B0D24F0006FB52 /* UIViewController.swift in Sources */,
 				A85314702600E53B009D5EFA /* GateViewController.swift in Sources */,
 				A85314782601186A009D5EFA /* String.swift in Sources */,
+				A8B8C45026269FE10004DBF0 /* ViewController+MapDelegate.swift in Sources */,
 				A8938ACE25AE0CE7007ABE2E /* ViewController.swift in Sources */,
 				A8938AD425AE0CE7007ABE2E /* Farsight.xcdatamodeld in Sources */,
+				A8AED1122637A77200D5DDD3 /* ViewController+SearchDelegate.swift in Sources */,
 				A8A9B4A825B08857000DF4F8 /* RoundedCornersView.swift in Sources */,
 				A8DF2CB22614297300DD8D18 /* LoadingButton.swift in Sources */,
 				A8938B1D25AE6319007ABE2E /* Annotations.swift in Sources */,

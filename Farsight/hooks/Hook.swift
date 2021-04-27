@@ -9,6 +9,7 @@
 import Foundation
 import Alamofire
 import SwiftyJSON
+import Starscream
 
 // TODO enable localization to group all strings in one file
 /*
@@ -253,5 +254,29 @@ extension UIViewController {
         request.response { (result) in
             handleResult(result: result)
         }
+    }
+    
+}
+
+extension WebSocketDelegate {
+    func connect() -> WebSocket {
+        print("connecting to \(Global.base_ws)")
+        var request = URLRequest(url: URL(string: Global.base_ws)!)
+        request.timeoutInterval = 10
+        let socket = WebSocket(request: request)
+        socket.delegate = self
+        socket.connect()
+        return socket
+    }
+    
+    func convertToDictionary(text: String) -> [String: Any]? {
+        if let data = text.data(using: .utf8) {
+            do {
+                return try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
+            } catch {
+                print(error.localizedDescription)
+            }
+        }
+        return nil  // TODO better to throw error
     }
 }

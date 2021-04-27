@@ -164,11 +164,14 @@ class Image: Codable {
     var path: String
 }
 
+// MARK: - Route
 class ParkingSpot: Codable {
     var id: Int
     var occupied: Bool
     var lon: Double
     var lat: Double
+    
+    var annotation: ParkingSpotAnnotation?
     
     enum CodingKeys:String,CodingKey {
         case id = "id"
@@ -189,8 +192,14 @@ class ParkingSpot: Codable {
         }
         return ret
     }
+    
+    // used in case `annotation` is not set
+    func getAnnotation() -> ParkingSpotAnnotation {
+        
+    }
 }
 
+// MARK: - Route
 class Route: Codable {
     var tripID: Int
     var parkingSpotID: Int
@@ -201,6 +210,9 @@ class Route: Codable {
     var estimatedDistance = 500 // in meters // this should be returned from server
     
     var gate: Gate!
+    
+    var parkingSpot: ParkingSpot?
+    var destinationAnnotation: DestinationAnnotation?
     
     enum CodingKeys:String,CodingKey {
         case tripID = "trip_id"

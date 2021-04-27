@@ -11,6 +11,7 @@ target 'Farsight' do
   pod 'AlamofireImage', '~> 4.1'
   pod 'SwiftyJSON', '~> 4.0'
   pod 'FittedSheets'
+  pod 'Starscream'
 
   target 'FarsightTests' do
     inherit! :search_paths
