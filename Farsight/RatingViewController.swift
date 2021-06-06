@@ -17,6 +17,8 @@ class RatingViewController: UIViewController {
     
     private var rating: Int?
     
+    var delegate: RouteDelegate?
+    
     var route: Route?
 
     override func viewDidLoad() {
@@ -40,7 +42,17 @@ class RatingViewController: UIViewController {
     }
     
     @IBAction func answeredNo() {
-        
+        let api = APIController()
+        api.getSuggestion(for: self.route!.gate) { (route, error) in
+            guard error == nil else {
+                if error == "no spots found" {
+                    self.delegate?.noRouteFound(closeSheet: true)
+                }
+                return
+            }
+            
+            self.delegate?.didReceive(route: route!)
+        }
     }
     
     @IBAction func ratingChoiceSelected(_ sender: UIButton) {
@@ -60,7 +72,6 @@ class RatingViewController: UIViewController {
         sender.showLoading()
         
         let params = ["rating": rating!]
-        
         requestImmediate("/rating/\(route!.tripID)/", params: params, method: .post) { (payload, raw, error) in
             sender.hideLoading()
             guard error == nil else {

@@ -69,7 +69,7 @@ class ParkingSpotAnnotationView: MKAnnotationView {
     func setClusteringIf(isAtBigZoom: Bool) {
         if isAtBigZoom {
             alpha = 1
-            clusteringIdentifier = nil
+//            clusteringIdentifier = nil
         }else{
             alpha = 0
             if (annotation as! ParkingSpotAnnotation).parkingSpot.occupied == false {
@@ -94,7 +94,6 @@ class GateAnnotationView: MKMarkerAnnotationView {
     override init(annotation: MKAnnotation?, reuseIdentifier: String?) {
         super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
         
-//        clusteringIdentifier = "ParkingSpotCluster"
         displayPriority = .defaultLow
     }
     
@@ -130,7 +129,8 @@ class MyCarAnnotationView: MKMarkerAnnotationView {
 
 // MARK: - destionation
 class DestinationAnnotation: MKPointAnnotation {
-    
+    var defualtColor = #colorLiteral(red: 1, green: 0.2595997751, blue: 0.3398093581, alpha: 1)
+    var color: UIColor?
 }
 
 class DestinationAnnotationView: MKMarkerAnnotationView {
@@ -148,15 +148,16 @@ class DestinationAnnotationView: MKMarkerAnnotationView {
     
     override func prepareForDisplay() {
         super.prepareForDisplay()
-//        displayPriority = .required // setting the priority here doesn't work
-        markerTintColor = #colorLiteral(red: 1, green: 0.2595997751, blue: 0.3398093581, alpha: 1)
+        displayPriority = .required // setting the priority here doesn't work
+        let annotation = annotation as! DestinationAnnotation
+        markerTintColor = annotation.color ?? annotation.defualtColor
         glyphImage = UIImage(systemName: "flag.fill")
     }
 }
 
 
 
-
+// MARK: for testing
 class MyCarAnnotation2: MKPointAnnotation {
     
 }
@@ -169,5 +170,61 @@ class MyCarAnnotationView2: MKMarkerAnnotationView {
         displayPriority = .defaultLow
         markerTintColor = #colorLiteral(red: 0.8549019694, green: 0.250980407, blue: 0.4784313738, alpha: 1)
         glyphImage = UIImage(systemName: "car.fill")
+    }
+}
+
+
+class UserAnnotation: MKPointAnnotation {
+    var user: TestingUser!
+    let userImage = UIImage(named: "user2")
+}
+
+class UserAnnotationView: MKAnnotationView {
+    static let reuseIdentifier = "UserAnnotation"
+    
+    override init(annotation: MKAnnotation?, reuseIdentifier: String?) {
+        super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
+        
+        displayPriority = .defaultHigh
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    override func prepareForDisplay() {
+        super.prepareForDisplay()
+        
+        image = (annotation as! UserAnnotation).userImage?.withTintColor(.red, renderingMode: .alwaysTemplate)
+//        image = (annotation as! UserAnnotation).userImage?.withRenderingMode(.alwaysTemplate)
+//        image = image?.withTintColor(.black)
+        self.layer.backgroundColor = UIColor.red.cgColor
+        self.backgroundColor = (annotation as! UserAnnotation).user.color
+    }
+}
+
+
+class SensorAnnotation: MKPointAnnotation {
+    var sensor: Sensor! // TODO make part of constructor
+    let sensorImage = UIImage(named: "sensor")
+}
+
+class SensorAnnotationView: MKAnnotationView {
+    static let reuseIdentifier = "SensorAnnotation"
+    
+    override init(annotation: MKAnnotation?, reuseIdentifier: String?) {
+        super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
+        
+        displayPriority = .defaultHigh
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    override func prepareForDisplay() {
+        super.prepareForDisplay()
+        
+        image = (annotation as! SensorAnnotation).sensorImage
     }
 }

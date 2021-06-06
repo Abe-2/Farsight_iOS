@@ -30,11 +30,18 @@
 		A8A9B4A825B08857000DF4F8 /* RoundedCornersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8A9B4A625B08857000DF4F8 /* RoundedCornersView.swift */; };
 		A8A9B4A925B08857000DF4F8 /* ShadowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8A9B4A725B08857000DF4F8 /* ShadowView.swift */; };
 		A8AED1122637A77200D5DDD3 /* ViewController+SearchDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8AED1112637A77200D5DDD3 /* ViewController+SearchDelegate.swift */; };
-		A8B8C44826269F970004DBF0 /* ViewController+GateDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B8C44726269F970004DBF0 /* ViewController+GateDelegate.swift */; };
+		A8AED1202638F7DC00D5DDD3 /* APIController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8AED11F2638F7DC00D5DDD3 /* APIController.swift */; };
+		A8B8C44826269F970004DBF0 /* ViewController+RouteDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B8C44726269F970004DBF0 /* ViewController+RouteDelegate.swift */; };
 		A8B8C45026269FE10004DBF0 /* ViewController+MapDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B8C44F26269FE00004DBF0 /* ViewController+MapDelegate.swift */; };
+		A8BB89FA264E7C12003B9B4B /* Map.geojson in Sources */ = {isa = PBXBuildFile; fileRef = A8BB89F9264E6B28003B9B4B /* Map.geojson */; };
+		A8BB89FB264E7D0B003B9B4B /* Map.geojson in Resources */ = {isa = PBXBuildFile; fileRef = A8BB89F9264E6B28003B9B4B /* Map.geojson */; };
+		A8BB89FD264FF5B3003B9B4B /* ViewController+Socket.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8BB89FC264FF5B3003B9B4B /* ViewController+Socket.swift */; };
+		A8BB89FF264FFBFF003B9B4B /* ViewController+Testing.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8BB89FE264FFBFF003B9B4B /* ViewController+Testing.swift */; };
 		A8DF2CB22614297300DD8D18 /* LoadingButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8DF2CB12614297300DD8D18 /* LoadingButton.swift */; };
 		A8DF2CB726142DB600DD8D18 /* RouteViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8DF2CB626142DB600DD8D18 /* RouteViewController.swift */; };
 		A8DF2CBC2614335000DD8D18 /* RatingViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8DF2CBB2614335000DD8D18 /* RatingViewController.swift */; };
+		A8EF424C265348AE00FCCC4E /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8EF424B265348AE00FCCC4E /* SettingsViewController.swift */; };
+		A8EF424E2654A19D00FCCC4E /* ViewController+Traffic.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8EF424D2654A19D00FCCC4E /* ViewController+Traffic.swift */; };
 		B45EF75D2897E81D48CFE7B5 /* Pods_Farsight_FarsightUITests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B04976533A9AF8BCFACEAE26 /* Pods_Farsight_FarsightUITests.framework */; };
 		FC90274608496F3FCB6E52F0 /* Pods_Farsight.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 439BB7A7C768F354899600E5 /* Pods_Farsight.framework */; };
 /* End PBXBuildFile section */
@@ -89,11 +96,17 @@
 		A8A9B4A625B08857000DF4F8 /* RoundedCornersView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RoundedCornersView.swift; sourceTree = "<group>"; };
 		A8A9B4A725B08857000DF4F8 /* ShadowView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ShadowView.swift; sourceTree = "<group>"; };
 		A8AED1112637A77200D5DDD3 /* ViewController+SearchDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ViewController+SearchDelegate.swift"; sourceTree = "<group>"; };
-		A8B8C44726269F970004DBF0 /* ViewController+GateDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ViewController+GateDelegate.swift"; sourceTree = "<group>"; };
+		A8AED11F2638F7DC00D5DDD3 /* APIController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIController.swift; sourceTree = "<group>"; };
+		A8B8C44726269F970004DBF0 /* ViewController+RouteDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ViewController+RouteDelegate.swift"; sourceTree = "<group>"; };
 		A8B8C44F26269FE00004DBF0 /* ViewController+MapDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ViewController+MapDelegate.swift"; sourceTree = "<group>"; };
+		A8BB89F9264E6B28003B9B4B /* Map.geojson */ = {isa = PBXFileReference; lastKnownFileType = text; path = Map.geojson; sourceTree = "<group>"; };
+		A8BB89FC264FF5B3003B9B4B /* ViewController+Socket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ViewController+Socket.swift"; sourceTree = "<group>"; };
+		A8BB89FE264FFBFF003B9B4B /* ViewController+Testing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ViewController+Testing.swift"; sourceTree = "<group>"; };
 		A8DF2CB12614297300DD8D18 /* LoadingButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingButton.swift; sourceTree = "<group>"; };
 		A8DF2CB626142DB600DD8D18 /* RouteViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteViewController.swift; sourceTree = "<group>"; };
 		A8DF2CBB2614335000DD8D18 /* RatingViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RatingViewController.swift; sourceTree = "<group>"; };
+		A8EF424B265348AE00FCCC4E /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
+		A8EF424D2654A19D00FCCC4E /* ViewController+Traffic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ViewController+Traffic.swift"; sourceTree = "<group>"; };
 		AC3E0E3549C5A5FF8C3165DA /* Pods-Farsight.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Farsight.debug.xcconfig"; path = "Target Support Files/Pods-Farsight/Pods-Farsight.debug.xcconfig"; sourceTree = "<group>"; };
 		B0420AA3806EB29199CF8F59 /* Pods-FarsightTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FarsightTests.release.xcconfig"; path = "Target Support Files/Pods-FarsightTests/Pods-FarsightTests.release.xcconfig"; sourceTree = "<group>"; };
 		B04976533A9AF8BCFACEAE26 /* Pods_Farsight_FarsightUITests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Farsight_FarsightUITests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -160,8 +173,11 @@
 				A8938AC925AE0CE7007ABE2E /* AppDelegate.swift */,
 				A8938ACB25AE0CE7007ABE2E /* SceneDelegate.swift */,
 				A8938ACD25AE0CE7007ABE2E /* ViewController.swift */,
+				A8BB89FE264FFBFF003B9B4B /* ViewController+Testing.swift */,
+				A8BB89FC264FF5B3003B9B4B /* ViewController+Socket.swift */,
+				A8EF424D2654A19D00FCCC4E /* ViewController+Traffic.swift */,
 				A8AED1112637A77200D5DDD3 /* ViewController+SearchDelegate.swift */,
-				A8B8C44726269F970004DBF0 /* ViewController+GateDelegate.swift */,
+				A8B8C44726269F970004DBF0 /* ViewController+RouteDelegate.swift */,
 				A8B8C44F26269FE00004DBF0 /* ViewController+MapDelegate.swift */,
 				A853146F2600E53B009D5EFA /* GateViewController.swift */,
 				A8938AFF25AE2001007ABE2E /* Models.swift */,
@@ -170,11 +186,13 @@
 				A8DF2CB12614297300DD8D18 /* LoadingButton.swift */,
 				A8DF2CB626142DB600DD8D18 /* RouteViewController.swift */,
 				A8DF2CBB2614335000DD8D18 /* RatingViewController.swift */,
+				A8EF424B265348AE00FCCC4E /* SettingsViewController.swift */,
 				A8938AD725AE0CEA007ABE2E /* LaunchScreen.storyboard */,
 				A8938ACF25AE0CE7007ABE2E /* Main.storyboard */,
 				A8938AD525AE0CEA007ABE2E /* Assets.xcassets */,
 				A8938ADA25AE0CEA007ABE2E /* Info.plist */,
 				A8938AD225AE0CE7007ABE2E /* Farsight.xcdatamodeld */,
+				A8BB89F9264E6B28003B9B4B /* Map.geojson */,
 			);
 			path = Farsight;
 			sourceTree = "<group>";
@@ -203,6 +221,7 @@
 				A853148E260124B2009D5EFA /* ImageHook.swift */,
 				A8938B2B25AE7336007ABE2E /* Hook.swift */,
 				A8938B3025AE73A6007ABE2E /* Reachability.swift */,
+				A8AED11F2638F7DC00D5DDD3 /* APIController.swift */,
 			);
 			path = hooks;
 			sourceTree = "<group>";
@@ -350,6 +369,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A8BB89FB264E7D0B003B9B4B /* Map.geojson in Resources */,
 				A8938AD925AE0CEA007ABE2E /* LaunchScreen.storyboard in Resources */,
 				A8938AD625AE0CEA007ABE2E /* Assets.xcassets in Resources */,
 				A8938AD125AE0CE7007ABE2E /* Main.storyboard in Resources */,
@@ -480,10 +500,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A8BB89FA264E7C12003B9B4B /* Map.geojson in Sources */,
+				A8AED1202638F7DC00D5DDD3 /* APIController.swift in Sources */,
 				A8938B2C25AE7336007ABE2E /* Hook.swift in Sources */,
+				A8EF424E2654A19D00FCCC4E /* ViewController+Traffic.swift in Sources */,
 				A8A9B4A925B08857000DF4F8 /* ShadowView.swift in Sources */,
+				A8BB89FF264FFBFF003B9B4B /* ViewController+Testing.swift in Sources */,
 				A8DF2CB726142DB600DD8D18 /* RouteViewController.swift in Sources */,
-				A8B8C44826269F970004DBF0 /* ViewController+GateDelegate.swift in Sources */,
+				A8B8C44826269F970004DBF0 /* ViewController+RouteDelegate.swift in Sources */,
 				A8DF2CBC2614335000DD8D18 /* RatingViewController.swift in Sources */,
 				A81ACE9925B0D24F0006FB52 /* UIViewController.swift in Sources */,
 				A85314702600E53B009D5EFA /* GateViewController.swift in Sources */,
@@ -495,10 +519,12 @@
 				A8A9B4A825B08857000DF4F8 /* RoundedCornersView.swift in Sources */,
 				A8DF2CB22614297300DD8D18 /* LoadingButton.swift in Sources */,
 				A8938B1D25AE6319007ABE2E /* Annotations.swift in Sources */,
+				A8BB89FD264FF5B3003B9B4B /* ViewController+Socket.swift in Sources */,
 				A853148F260124B2009D5EFA /* ImageHook.swift in Sources */,
 				A8938B0025AE2001007ABE2E /* Models.swift in Sources */,
 				A8938ACA25AE0CE7007ABE2E /* AppDelegate.swift in Sources */,
 				A8938B3125AE73A6007ABE2E /* Reachability.swift in Sources */,
+				A8EF424C265348AE00FCCC4E /* SettingsViewController.swift in Sources */,
 				A8938ACC25AE0CE7007ABE2E /* SceneDelegate.swift in Sources */,
 				A8938B3625AE73E2007ABE2E /* Global.swift in Sources */,
 			);
@@ -684,10 +710,10 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = none.Farsight;
+				PRODUCT_BUNDLE_IDENTIFIER = none.Farsight.mac;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -704,10 +730,10 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = none.Farsight;
+				PRODUCT_BUNDLE_IDENTIFIER = none.Farsight.mac;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};

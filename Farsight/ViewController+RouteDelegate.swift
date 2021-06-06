@@ -1,5 +1,5 @@
 //
-//  ViewController+GateDelegate.swift
+//  ViewController+RouteDelegate.swift
 //  Farsight
 //
 //  Created by Abdalwahab on 4/14/21.
@@ -9,7 +9,32 @@ import UIKit
 import MapKit
 import FittedSheets
 
-extension ViewController: GateDelegate {
+protocol RouteDelegate {
+    func didReceive(route: Route)
+    func noRouteFound(closeSheet: Bool)
+}
+
+extension ViewController: RouteDelegate {
+    func noRouteFound(closeSheet: Bool) {
+        if closeSheet {
+            self.activeSheet?.animateOut()
+        }
+        
+        UIView.animate(withDuration: 0.3) {
+            self.imgParkNameIcon.isHidden = false
+            self.lblParkName.text = "No parking spot found"
+            self.view.layoutIfNeeded()
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            UIView.animate(withDuration: 0.3) {
+                self.imgParkNameIcon.isHidden = true
+                self.lblParkName.text = self.currentParkingLot?.name
+                self.view.layoutIfNeeded()
+            }
+        }
+    }
+    
     func showGate(view: MKAnnotationView) {
         let controller = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "GateViewController") as! GateViewController
         controller.delegate = self
@@ -60,19 +85,19 @@ extension ViewController: GateDelegate {
     }
     
     // start a new route
-    func gate(_ gate: Gate, didReceive route: Route) {
+    func didReceive(route: Route) {
         map.deselectAnnotation(currentGateAnnotation, animated: true)
         
         // drawing route
         let myPolyline = route.createPolyline()
-//        let myPolyline = MKGeodesicPolyline(coordinates: &pointsToUse, count: route.points.count)
         map.addOverlay(myPolyline!, level: .aboveRoads)
         
-        // hide current sheet (gate sheet)
+        // hide current sheet (can be gate sheet or route sheet)
         activeSheet?.animateOut()
         
         // show route sheet
         let controller = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "RouteViewController") as! RouteViewController
+        controller.delegate = self
         
         DispatchQueue.main.asyncAfter(deadline: DispatchTime(uptimeNanoseconds: 1000)) {
             controller.route = route
@@ -86,12 +111,7 @@ extension ViewController: GateDelegate {
         activeSheet!.didDismiss = { _ in
             print("did dismiss route sheet")
             
-            // TODO also minimize target parking spot (it should be inflated)
-            self.map.removeOverlay(route.polyline!)
-            
-            // TODO remove destination marker and add spot annotation back but as taken
-            self.map.removeAnnotation(self.currentRoute!.destinationAnnotation!)
-            self.addSpotAnnotation(spot: self.currentRoute!.parkingSpot)
+            // remove route, remove destination marker and add spot annotation back
             self.currentRoute = nil
             
             self.showRatingSheet(route: route)
@@ -105,6 +125,9 @@ extension ViewController: GateDelegate {
     }
     
     func addDestinationAnnotation(to route: Route) {
+        print("adding destination annotation")
+        print(route.parkingSpot)
+        
         let pointCord = CLLocationCoordinate2D(latitude: route.parkingSpot.lat, longitude: route.parkingSpot.lon)
         let marker = DestinationAnnotation()
         marker.coordinate = pointCord
@@ -119,12 +142,12 @@ extension ViewController: GateDelegate {
     func destinationReached() {
         // activeSheet should be route sheet at this point and dismissing it would trigger rating
         activeSheet?.attemptDismiss(animated: true)
-//        activeSheet?.dismiss(animated: true, completion: nil)
     }
     
     // when user reaches his destination
     func showRatingSheet(route: Route) {
         let controller = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "RatingViewController") as! RatingViewController
+        controller.delegate = self
         
         DispatchQueue.main.asyncAfter(deadline: DispatchTime(uptimeNanoseconds: 1000)) {
             controller.route = route
@@ -147,16 +170,50 @@ extension ViewController: GateDelegate {
     }
     
     func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
-        if overlay.isKind(of: MKPolyline.self) {
-            // draw the track
-            let polyLine = overlay
-            let polyLineRenderer = MKPolylineRenderer(overlay: polyLine)
-            polyLineRenderer.strokeColor = UIColor.blue
+        if let road = overlay as? Road {
+            let polyLineRenderer = MKPolylineRenderer(overlay: overlay)
+//            polyLineRenderer.strokeColor = UIColor.blue
+            switch road.carCount {
+            case 0...1:
+                polyLineRenderer.strokeColor = .systemGreen
+            case 2...2:
+                polyLineRenderer.strokeColor = .systemYellow
+            case 3...3:
+                polyLineRenderer.strokeColor = .systemOrange
+            case 4...1000:
+                polyLineRenderer.strokeColor = .systemRed
+            default:
+                polyLineRenderer.strokeColor = .random()
+            }
             polyLineRenderer.lineWidth = 2.0
+            
+            return polyLineRenderer
+        }else if overlay.isKind(of: MKPolyline.self) {
+            let polyLineRenderer = MKPolylineRenderer(overlay: overlay)
+            polyLineRenderer.strokeColor = #colorLiteral(red: 0.2901960784, green: 0.6392156863, blue: 0.9725490196, alpha: 1)
+//            polyLineRenderer.strokeColor = .random()
+            polyLineRenderer.lineWidth = 6.0
             
             return polyLineRenderer
         }
         
         return MKPolylineRenderer()
+    }
+}
+
+extension CGFloat {
+    static func random() -> CGFloat {
+        return CGFloat(arc4random()) / CGFloat(UInt32.max)
+    }
+}
+
+extension UIColor {
+    static func random() -> UIColor {
+        return UIColor(
+           red:   .random(),
+           green: .random(),
+           blue:  .random(),
+           alpha: 1.0
+        )
     }
 }

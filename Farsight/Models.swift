@@ -33,8 +33,12 @@ class ParkingLot: Codable {
     
     var parkingSpots: [ParkingSpot]?
     
+    var users: [User]?  // for testing
+    
     var userSpot: Int?
     var myCarAnnotation: MyCarAnnotation?
+    
+    var trafficRoads: [Road]?
     
     enum CodingKeys:String,CodingKey {
         case id = "id"
@@ -266,5 +270,111 @@ class Route: Codable {
         }
         
         return nil // TODO should never happen, throw error
+    }
+}
+
+
+
+// MARK: for testing
+class User: Codable {
+    var lon: Double
+    var lat: Double
+    
+//    enum CodingKeys:String,CodingKey {
+//        case id = "id"
+//        case occupied = "occupied"
+//        case lat = "latitude"
+//        case lon = "longitude"
+//    }
+    
+    static func decode(array: [JSON]) -> [User] {
+        var ret = [User]()
+        for object in array {
+            do {
+                let jsonData = try object.rawData()
+                ret.append(try JSONDecoder().decode(User.self, from: jsonData))
+            } catch let error {
+                print(error)
+            }
+        }
+        return ret
+    }
+}
+
+
+class Road: MKPolyline {
+    var id: String!
+    var carCount: Int = 0
+    
+//    internal init(id: String, carCount: Int, polyline: MKPolyline) {
+//        self.id = id
+//        self.carCount = carCount
+//        self.polyline = polyline
+//    }
+}
+
+
+class Sensor: Codable {
+    var id: Int
+    var lat: Double
+    var lon: Double
+    var location: CLLocationCoordinate2D {
+        get {
+            return CLLocationCoordinate2D(latitude: self.lat, longitude: self.lon)
+        }
+    }
+    var inStreet: Int
+    var inStreet_string: String {
+        get {
+            return String(inStreet)
+        }
+    }
+    
+    var outStreet: Int
+    var outStreet_string: String {
+        get {
+            return String(outStreet)
+        }
+    }
+    
+    enum CodingKeys:String,CodingKey {
+        case id = "id"
+        case lat = "latitude"
+        case lon = "longitude"
+        case inStreet = "in_street"
+        case outStreet = "out_street"
+    }
+    
+    static func decode(array: [JSON]) -> [Sensor] {
+        var ret = [Sensor]()
+        for object in array {
+            do {
+                let jsonData = try object.rawData()
+                ret.append(try JSONDecoder().decode(Sensor.self, from: jsonData))
+            } catch let error {
+                print(error)
+            }
+        }
+        return ret
+    }
+}
+
+
+class TestingUser {
+    var id: String
+    var location: CLLocationCoordinate2D
+    var color: UIColor
+    
+    var annotation: UserAnnotation?
+    
+    var route: Route?
+    var timer: Timer?
+    var index = 0
+    
+    internal init(location: CLLocationCoordinate2D, color: UIColor) {
+        let letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        self.id = String((0..<10).map{ _ in letters.randomElement()! })
+        self.location = location
+        self.color = color
     }
 }

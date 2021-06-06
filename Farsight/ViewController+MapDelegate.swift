@@ -7,17 +7,10 @@
 
 import UIKit
 import MapKit
+import Alamofire
 
 
 extension ViewController: MKMapViewDelegate {
-    
-    func register() {
-        map.register(MKMarkerAnnotationView.self, forAnnotationViewWithReuseIdentifier: ParkingSpotAnnotationView.clusteringReuseIdentifier)
-        map.register(ParkingSpotAnnotationView.self, forAnnotationViewWithReuseIdentifier: ParkingSpotAnnotationView.reuseIdentifier)
-        map.register(ParkingLotAnnotationView.self, forAnnotationViewWithReuseIdentifier: ParkingLotAnnotationView.reuseIdentifier)
-        map.register(GateAnnotationView.self, forAnnotationViewWithReuseIdentifier: GateAnnotationView.reuseIdentifier)
-        map.register(MyCarAnnotationView.self, forAnnotationViewWithReuseIdentifier: MyCarAnnotationView.reuseIdentifier)
-    }
     
     // TODO the code here needs reorganization and cleaning
     func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
@@ -56,6 +49,10 @@ extension ViewController: MKMapViewDelegate {
             return DestinationAnnotationView(annotation: annotation, reuseIdentifier: DestinationAnnotationView.reuseIdentifier)
         case is MyCarAnnotation2:
             return MyCarAnnotationView2(annotation: annotation, reuseIdentifier: MyCarAnnotationView2.reuseIdentifier)
+        case is UserAnnotation:
+            return UserAnnotationView(annotation: annotation, reuseIdentifier: UserAnnotationView.reuseIdentifier)
+        case is SensorAnnotation:
+            return SensorAnnotationView(annotation: annotation, reuseIdentifier: SensorAnnotationView.reuseIdentifier)
         default:
             return nil
         }
@@ -66,7 +63,8 @@ extension ViewController: MKMapViewDelegate {
         case is ParkingLotAnnotation:
             return ParkingLotAnnotationView.reuseIdentifier
         case is ParkingSpotAnnotation:
-            return ParkingSpotAnnotationView.reuseIdentifier
+//            return ParkingSpotAnnotationView.reuseIdentifier
+            return ""
         case is GateAnnotation:
             return GateAnnotationView.reuseIdentifier
         case is MyCarAnnotation:
@@ -75,6 +73,10 @@ extension ViewController: MKMapViewDelegate {
             return DestinationAnnotationView.reuseIdentifier
         case is MyCarAnnotation2:
             return MyCarAnnotationView2.reuseIdentifier
+        case is UserAnnotation:
+            return UserAnnotationView.reuseIdentifier
+        case is SensorAnnotation:
+            return SensorAnnotationView.reuseIdentifier
         default:
             return nil
         }
@@ -117,6 +119,33 @@ extension ViewController: MKMapViewDelegate {
         isAtBigZoom = mapView.region.span.latitudeDelta < 0.002
     }
     
+    func markSpot(taken: Bool, spotID: Int) {
+        print("marking spot \(spotID)")
+        // find parking spot marker then change it to taken
+        for annotation in map.annotations {
+            guard let spotAnnotation = annotation as? ParkingSpotAnnotation else {
+                continue
+            }
+            
+            if spotAnnotation.parkingSpot.id == spotID {
+                // we found the spot
+                self.map.removeAnnotation(spotAnnotation)
+                spotAnnotation.parkingSpot.occupied = taken
+                self.map.addAnnotation(spotAnnotation)
+                break
+            }
+        }
+    }
+    
+    func removeAnnotation(forSpot spot: ParkingSpot) {
+        let spotAnnotation = spot.annotation != nil ? spot.annotation : spot.getAnnotation(map: map)
+        if spotAnnotation != nil {
+            self.map.removeAnnotation(spotAnnotation!)
+            spot.annotation = nil
+        }
+    }
+    
+    // MARK: - didSelect
     func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
         switch view {
         
@@ -134,37 +163,42 @@ extension ViewController: MKMapViewDelegate {
             let viewRegion = MKCoordinateRegion(center: view.annotation!.coordinate, latitudinalMeters: 400, longitudinalMeters: 400)
             map.setRegion(viewRegion, animated: true)
             showGate(view: view)
+        case is ParkingSpotAnnotationView:
+            if Global.TestingMode {
+                let annotation = (view as! ParkingSpotAnnotationView).annotation as! ParkingSpotAnnotation
+                print("UPDATE client_parkingspot SET street_id = ? WHERE id = \(annotation.parkingSpot.id)")
+                handleSpotTestingClick(spot: annotation.parkingSpot, occupied: !annotation.parkingSpot.occupied)
+            }
+        case is DestinationAnnotationView:
+            if Global.TestingMode {
+                print("clicked on destination")
+                handleSpotTestingClick(spot: self.currentRoute!.parkingSpot, occupied: true)
+            }
+        case is SensorAnnotationView:
+            if Global.TestingMode {
+                let annotation = (view as! SensorAnnotationView).annotation as! SensorAnnotation
+                print("clicked on sensor \(annotation.sensor)")
+                handleSensorClick(sensor: annotation.sensor)
+            }
         default:
             return
         }
     }
     
-    func markSpotTaken(spotID: Int) {
-        // find parking spot marker then change it to taken
-        for annotation in map.annotations {
-            guard let spotAnnotation = annotation as? ParkingSpotAnnotation else {
-                continue
+    func handleSpotTestingClick(spot: ParkingSpot, occupied: Bool) {
+        print("clicked on spot: \(spot.id)")
+        
+        self.loadingIndicator.isHidden = false
+        self.loadingIndicator.startAnimating()
+        
+        let params = ["spot_ids": [spot.id], "is_occupied": occupied]  as Parameters
+        print(params)
+        requestImmediate("/spots/update/", params: params, method: .put, encoding: JSONEncoding.prettyPrinted) { (payload, raw, error) in
+            self.loadingIndicator.stopAnimating()
+            guard error == nil else {
+                // TODO handle error
+                return
             }
-            
-            if spotAnnotation.parkingSpot.id == spotID {
-                self.map.removeAnnotation(spotAnnotation)
-                // we found the spot
-                spotAnnotation.parkingSpot.occupied = true
-//                let view = map.view(for: spotAnnotation) as! ParkingSpotAnnotationView
-//                view.image = spotAnnotation.takenSpotImage
-//                view.clusteringIdentifier = nil
-                
-                self.map.addAnnotation(spotAnnotation)
-                break
-            }
-        }
-    }
-    
-    func removeAnnotation(forSpot spot: ParkingSpot) {
-        let spotAnnotation = spot.annotation != nil ? spot.annotation : spot.getAnnotation(map: map)
-        if spotAnnotation != nil {
-            self.map.removeAnnotation(spotAnnotation!)
-            spot.annotation = nil
         }
     }
 }

@@ -10,18 +10,38 @@ import MapKit
 import FittedSheets
 import SwiftyJSON
 import Starscream
+import Alamofire
 
 
 // - cycle 3:
-// TODO sending user location
-// TODO re-route if no is selected
-// TODO multiple users simulations
-// TODO leaving parking spot endpoint
-// TODO selecting many parking spots
-// TODO marking a single parking spot as taken
-// TODO re-route if spot is taken
-// TODO show no spot found if get suggestion returns 404
-// TODO clean database from fake users and free up spots
+// --TODO marking a single parking spot as taken
+// --TODO re-route if spot is taken
+// --TODO show no spot found if get suggestion returns 404
+
+// - cycle 5:
+// --TODO add more midpoints to map to temp fix destination path issue
+// --TODO get other users on the map
+// --TODO add direction to roads in the many parking area besides faculty parking in gust map
+// --TODO showing roads traffic
+// --TODO listening to changes in traffic data
+// --TODO fetch all motion sensors from server
+// --TODO show the hidden motion sensor because of being too close to another sensor
+// --TODO motion sensor simulation based on user movements
+// --TODO moving user route above traffic
+// --TODO connecting faculty spots
+// --TODO fixing single user target location and path bug
+// --TODO fixing the bug where spots are routed to from another street than the one they are connected to. It wasn't a bug. It was just missing points
+// --TODO showing routes of many users
+// --TODO simulation setting sheet
+// --TODO simulating user movements based on path.
+// --TODO testing user park taken
+// TODO change user current_parking_lot when they get suggestion
+// --TODO hide my car in testing mode
+
+// - abandoned
+// TODO sending user location. Not needed currently as its not being used anywhere
+// TODO change glyph image instead of adding a destination annotation. Will cause issues when considering zooming out and clustering
+// TODO leaving parking spot endpoint -- There isn't such endpoint as we can't get this info. This is decided by the server when a park becomes empty and it previously has a user
 
 // - extra
 // TODO predicating when user is going to their car feature
@@ -46,6 +66,7 @@ class ViewController: UIViewController {
     
     @IBOutlet var nameHolder: UIView!
     @IBOutlet var lblParkName: UILabel!
+    @IBOutlet var imgParkNameIcon: UIImageView!
     
     @IBOutlet var occupancyHolder: UIView!
     @IBOutlet var lblOccupancyRate: UILabel!
@@ -55,7 +76,15 @@ class ViewController: UIViewController {
     
     // only if we got suggestion
     // marked nil when user reaches destination
-    var currentRoute: Route?
+    var currentRoute: Route? {
+        didSet {
+            if oldValue != nil {
+                self.map.removeOverlay(oldValue!.polyline!)
+                self.map.removeAnnotation(oldValue!.destinationAnnotation!)
+                self.addSpotAnnotation(spot: oldValue!.parkingSpot)
+            }
+        }
+    }
     
     var currentGateAnnotation: GateAnnotation? = nil
     var activeSheet: SheetViewController? = nil
@@ -73,9 +102,9 @@ class ViewController: UIViewController {
             guard oldValue != isAtBigZoom else {
                 return
             }
-
+            
             print("changing zoom")
-
+            
             // refresh parking spots annotations
             let annotations = self.map.annotations
             let parkingAnnotations = annotations.filter({ (annotation) -> Bool in
@@ -87,35 +116,10 @@ class ViewController: UIViewController {
     }
     
     // for testing
-    var myCarSimulation: MyCarAnnotation2!
-    var simulationTimer: Timer!
-    var index = 0
-    let locations = [
-        CLLocationCoordinate2D(latitude: 29.272062, longitude: 48.052245),
-        CLLocationCoordinate2D(latitude: 29.272146, longitude: 48.052158),
-        CLLocationCoordinate2D(latitude: 29.272243, longitude: 48.052097),
-        CLLocationCoordinate2D(latitude: 29.272343, longitude: 48.052055),
-        CLLocationCoordinate2D(latitude: 29.272453, longitude: 48.052039),
-        CLLocationCoordinate2D(latitude: 29.272513, longitude: 48.052105),
-        CLLocationCoordinate2D(latitude: 29.272547, longitude: 48.052207),
-        CLLocationCoordinate2D(latitude: 29.272524, longitude: 48.052314),
-        CLLocationCoordinate2D(latitude: 29.272429, longitude: 48.052356),
-        CLLocationCoordinate2D(latitude: 29.272352, longitude: 48.052386),
-        CLLocationCoordinate2D(latitude: 29.272271, longitude: 48.052414),
-        CLLocationCoordinate2D(latitude: 29.272219, longitude: 48.052479),
-        CLLocationCoordinate2D(latitude: 29.272249, longitude: 48.052611),
-        CLLocationCoordinate2D(latitude: 29.272296, longitude: 48.052713),
-        CLLocationCoordinate2D(latitude: 29.272332, longitude: 48.052838),
-        CLLocationCoordinate2D(latitude: 29.272390, longitude: 48.052975),
-        CLLocationCoordinate2D(latitude: 29.272437, longitude: 48.053089),
-        CLLocationCoordinate2D(latitude: 29.272500, longitude: 48.053107),
-        CLLocationCoordinate2D(latitude: 29.272598, longitude: 48.053078),
-        CLLocationCoordinate2D(latitude: 29.272700, longitude: 48.053035),
-        CLLocationCoordinate2D(latitude: 29.272816, longitude: 48.052994),
-        CLLocationCoordinate2D(latitude: 29.272785, longitude: 48.053003),
-        CLLocationCoordinate2D(latitude: 29.272942, longitude: 48.052946),
-        CLLocationCoordinate2D(latitude: 29.272942, longitude: 48.052946),
-    ]
+    @IBOutlet var loadingIndicator: UIActivityIndicatorView!
+    @IBOutlet var btnSetting: UIButton!
+    
+    var motionSensors: [Sensor]?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -151,7 +155,14 @@ class ViewController: UIViewController {
         
         getParkingLots()
         
-//        register()
+//        requestImmediate("/reset-parking-lot/") { (payload, raw, error) in
+//            if error != nil {
+//                print("testing: failed to reset")
+//                return
+//            }
+//
+//            print("testing: resetted")
+//        }
     }
     
     func findView(current: UIView, path: [String], index: Int) -> UIView? {
@@ -182,6 +193,7 @@ class ViewController: UIViewController {
     }
     
     func getParkingLots() {
+        print(Global.phoneID)
         requestImmediate("/lot/", params: ["user_id": Global.phoneID]) { (payload, raw, error) in
             if error != nil {
                 // TODO handle error
@@ -214,15 +226,30 @@ class ViewController: UIViewController {
             return
         }
         
-        requestImmediate("/lot/\(parkingLot.id)") { (payload, raw, error) in
+        let params: [String:String]?
+        if Global.TestingMode {
+            params = nil
+        }else{
+            params = ["phone_id": Global.phoneID]
+        }
+        
+        requestImmediate("/lot/\(parkingLot.id)/", params: params, method: .post) { (payload, raw, error) in
             if error != nil {
                 // TODO handle error
             }
-
+            
             parkingLot.gates = Gate.decode(array: payload!["gates"].arrayValue, lot: parkingLot)
             parkingLot.parkingSpots = ParkingSpot.decode(array: payload!["parking_spots"].arrayValue)
+            parkingLot.users = User.decode(array: payload!["user_locations"].arrayValue)
             self.select(parkingLot: parkingLot)
             completion?()
+            
+            // get traffic data
+            self.getTraffic()
+            
+            if Global.TestingMode {
+                self.getSensors()
+            }
             
             // subscribe to the parking lot
             let data: [String : Any] = [
@@ -231,28 +258,28 @@ class ViewController: UIViewController {
             ]
             self.send(data, onSuccess: nil)
         }
-//        if completion != nil {
-//            // TODO this is kept for my car because I couldn't find a clean way to do it with sockets
-//            requestImmediate("/lot/\(parkingLot.id)") { (payload, raw, error) in
-//                if error != nil {
-//                    // TODO handle error
-//                }
-//
-//                parkingLot.gates = Gate.decode(array: payload!["gates"].arrayValue)
-//                parkingLot.parkingSpots = ParkingSpot.decode(array: payload!["parking_spots"].arrayValue)
-//                self.select(parkingLot: parkingLot)
-//                completion?()
-//            }
-//        }else{
-//            if isConnected {
-//                // subscribe to the parking lot
-//                let data: [String : Any] = [
-//                    "action": "subscribe",
-//                    "parking_lot_id": parkingLot.id
-//                ]
-//                self.send(data, onSuccess: nil)
-//            }
-//        }
+        //        if completion != nil {
+        //            // TODO this is kept for my car because I couldn't find a clean way to do it with sockets
+        //            requestImmediate("/lot/\(parkingLot.id)") { (payload, raw, error) in
+        //                if error != nil {
+        //                    // TODO handle error
+        //                }
+        //
+        //                parkingLot.gates = Gate.decode(array: payload!["gates"].arrayValue)
+        //                parkingLot.parkingSpots = ParkingSpot.decode(array: payload!["parking_spots"].arrayValue)
+        //                self.select(parkingLot: parkingLot)
+        //                completion?()
+        //            }
+        //        }else{
+        //            if isConnected {
+        //                // subscribe to the parking lot
+        //                let data: [String : Any] = [
+        //                    "action": "subscribe",
+        //                    "parking_lot_id": parkingLot.id
+        //                ]
+        //                self.send(data, onSuccess: nil)
+        //            }
+        //        }
         
     }
     
@@ -271,6 +298,10 @@ class ViewController: UIViewController {
         for gate in parkingLot.gates! {
             addGateAnnotation(gate: gate)
         }
+        
+//        for user in parkingLot.users! {
+//            addUserAnnotation(user: user)
+//        }
         
         addMyCarAnnotation()
     }
@@ -321,6 +352,10 @@ class ViewController: UIViewController {
     }
     
     func showParkingLotControls(forPark parkingLot: ParkingLot) {
+        if Global.TestingMode {
+            btnSetting.isHidden = false
+        }
+        
         UIView.animate(withDuration: 0.3) {
             self.srcBarTop.constant = 12
             self.srcBarHolder.alpha = 1
@@ -350,55 +385,6 @@ class ViewController: UIViewController {
             }
         }
     }
-    
-    @IBAction func startSimulation() {
-        index = 0
-        let pointCord = CLLocationCoordinate2D(latitude: locations[index].latitude, longitude: locations[index].longitude)
-        index += 1
-        
-        myCarSimulation = MyCarAnnotation2()
-        myCarSimulation.coordinate = pointCord
-        map.addAnnotation(myCarSimulation)
-        
-        simulationTimer = Timer.scheduledTimer(timeInterval: 0.5, target: self, selector: #selector(updateSimulation), userInfo: nil, repeats: true)
-    }
-    
-    @objc func updateSimulation() {
-        let pointCord = CLLocationCoordinate2D(latitude: locations[index].latitude, longitude: locations[index].longitude)
-        myCarSimulation.coordinate = pointCord
-        
-        if index == locations.count - 1 {
-            simulationTimer.invalidate()
-        }
-        
-        index += 1
-        
-        if currentRoute != nil {
-            print(currentRoute?.parkingSpotID)
-            // we have a route so we need to check our distance to the target
-            // get spot coords
-            for spot in currentParkingLot!.parkingSpots! {
-                if spot.id == currentRoute?.parkingSpotID {
-                    // found the spot. Check distance to it
-                    let targetLocation = CLLocation(latitude: spot.lat, longitude: spot.lon)
-                    let userLocation = CLLocation(latitude: pointCord.latitude, longitude: pointCord.longitude)
-                    
-                    let distance = targetLocation.distance(from: userLocation) // in meters
-                    
-                    print(distance)
-                    
-                    if distance < 10 {
-                        self.destinationReached()
-                        simulationTimer.invalidate()
-                        return
-                    }
-                    
-                    break
-                }
-            }
-            
-        }
-    }
 }
 
 
@@ -406,6 +392,7 @@ class ViewController: UIViewController {
 extension ViewController: CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         // TODO use user new location
+        self.activeSheet?.attemptDismiss(animated: true)
     }
     
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
@@ -443,103 +430,4 @@ extension ViewController {
             }
         }
     }
-}
-
-// MARK: - Sockets
-extension ViewController: WebSocketDelegate {
-    func didReceive(event: WebSocketEvent, client: WebSocket) {
-        switch event {
-            case .connected(let headers):
-                isConnected = true
-                print("websocket is connected: \(headers)")
-                
-                // send auth
-                let data = [
-                    "action": "auth",
-                    "phone_id": Global.phoneID
-                ]
-                self.send(data, onSuccess: nil)
-            case .disconnected(let reason, let code):
-                isConnected = false
-                print("websocket is disconnected: \(reason) with code: \(code)")
-            case .text(let string):
-//                print("Received text: \(string)")
-//                receive(message: self.convertToDictionary(text: string)!)
-                receive(message: JSON(string.data(using: .utf8)))
-            case .binary(let data):
-                print("Received data: \(data.count)")
-            case .ping(_):
-                break
-            case .pong(_):
-                break
-            case .viabilityChanged(_):
-                break
-            case .reconnectSuggested(_):
-                break
-            case .cancelled:
-                isConnected = false
-            case .error(let error):
-                isConnected = false
-                print(error.publisher)
-                // TODO handle error
-            }
-    }
-    
-    func receive(message: JSON) {
-        
-        switch message["event"].stringValue {
-        case "parking_spots":
-            print("got parking spots")
-            // TODO get spots from here
-//            print(message["data"])
-            
-        case "parking_spot_taken":
-            print("spot taken \(message["data"])")
-            // Check if the taken parking spot is mine or not.
-            //  If yes, then check phone, if same, ignore, otherwise re-route
-            //  Also, change parking spot status
-            guard let spotID = message["data"]["id"].int else {
-                return
-            }
-            
-            // check if it is our spot, if any
-            if let route = currentRoute {
-                if route.parkingSpotID == spotID && message["data"]["phone_id"].stringValue != Global.phoneID {
-                    // taken spot is our spot and its someone else who took it
-                    // TODO re-route
-                }else{
-                    // ignore since we took our spot
-                }
-            }else{
-                // mark spot as taken
-                self.markSpotTaken(spotID: spotID)
-            }
-            
-        default:
-            break
-        }
-        
-    }
-    
-    func send(_ value: Any, onSuccess: (()-> Void)?) {
-        
-        guard JSONSerialization.isValidJSONObject(value) else {
-            print("[WEBSOCKET] Value is not a valid JSON object.\n \(value)")
-            return
-        }
-        
-        print("sending socket message")
-        
-        do {
-            let data = try JSONSerialization.data(withJSONObject: value, options: [])
-            print(String(decoding: data, as: UTF8.self))
-            socket.write(string: String(decoding: data, as: UTF8.self)) {
-                onSuccess?()
-            }
-        } catch let error {
-            print("[WEBSOCKET] Error serializing JSON:\n\(error)")
-        }
-    }
-    
-    
 }

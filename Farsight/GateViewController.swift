@@ -12,17 +12,13 @@ import SkeletonView
 import CoreLocation
 import SwiftyJSON
 
-protocol GateDelegate {
-    func gate(_ gate: Gate, didReceive route: Route)
-}
-
 class GateViewController: UIViewController {
     
     @IBOutlet var table: UITableView!
     @IBOutlet var lblTitle: UILabel!
     @IBOutlet var lblDistance: UILabel!
     
-    var delegate: GateDelegate?
+    var delegate: RouteDelegate?
     
     let locationManager = CLLocationManager()
     
@@ -39,6 +35,19 @@ class GateViewController: UIViewController {
         
         self.sheetViewController?.handleScrollView(self.table)
         self.table.register(PlacesSectionHeaderView.self, forHeaderFooterViewReuseIdentifier: PlacesSectionHeaderView.reuseIdentifier)
+        
+//        print("phone id: \(Global.phoneID)")
+//        var dateComponents = DateComponents()
+//        dateComponents.year = 2021
+//        dateComponents.month = 4
+//        dateComponents.day = 28
+//        dateComponents.hour = 15
+//        dateComponents.minute = 0
+//
+//        let userCalendar = Calendar(identifier: .gregorian) // since the components above (like year 1980) are for Gregorian
+//        let date = userCalendar.date(from: dateComponents)
+//        let timer = Timer(fireAt: date!, interval: 0, target: self, selector: #selector(suggestionTapped(_:)), userInfo: nil, repeats: false)
+//        RunLoop.main.add(timer, forMode: .common)
     }
     
     @IBAction func closeTapped(_ sender: Any) {
@@ -46,44 +55,23 @@ class GateViewController: UIViewController {
     }
     
     @IBAction func suggestionTapped(_ sender: Any) {
-        guard let userLocation = locationManager.location?.coordinate else {
-            print("can't get user location")
-            return
-        }
+        let loadingButton = sender as? LoadingButton
+        loadingButton?.showLoading()
         
-        let loadingButton = sender as! LoadingButton
-        loadingButton.showLoading()
-        
-        let params = ["lat": userLocation.latitude, "lon": userLocation.longitude, "phone_id": "51"] as [String : Any]
-        print(userLocation.latitude)
-        print(userLocation.longitude)
-        
-        requestImmediate("/suggestion/\(gate!.id)/", params: params, method: .post) { (payload, raw, error) in
-            loadingButton.hideLoading()
+        let api = APIController()
+        api.getSuggestion(for: self.gate!) { (route, error) in
+            loadingButton?.hideLoading()
             
-            guard error == nil, let payload = payload else {
-                // TODO handle error
-                print(error!)
+            guard error == nil else {
+                // TODO this is bad. Do better
+                if error == "no spots found" {
+                    self.delegate?.noRouteFound(closeSheet: false)
+                }
+                
                 return
             }
             
-            print("the suggestion:")
-            print(payload)
-            
-            var route: Route!
-            
-            do {
-                let jsonData = try payload.rawData()
-                route = try JSONDecoder().decode(Route.self, from: jsonData)
-                route.decodePath(jsonArray: payload["route"].arrayValue)
-                route.gate = self.gate
-                route.getParkingSpot()
-            } catch let error {
-                // TODO handle error
-                print(error)
-            }
-            
-            self.delegate?.gate(self.gate!, didReceive: route)
+            self.delegate?.didReceive(route: route!)
         }
     }
 }
